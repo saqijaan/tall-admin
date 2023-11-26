@@ -1,0 +1,53 @@
+name: Deploying blog to production
+run-name: ${{ github.actor }} triggered the deployment 🚀
+on:
+  push:
+    branches:
+      - master
+      
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Checkout code'
+        uses: actions/checkout@v4
+
+      - name: 'Cache Docker layers'
+        uses: actions/cache@v3
+        with:
+          path: docker
+          key: ${{ runner.os }}-composer-${{ hashFiles('docker/composer.lock') }}
+
+      - name: 'Install Composer dependencies'
+        run: "docker run -v ./:/var/www/html saqijaan/php-82:latest composer install"
+
+      - name: 'Setup Test Env'
+        run: "docker run -v ./:/var/www/html saqijaan/php-82:latest cp .env.example .env.testing"
+      
+      - name: 'Generate key for testing'
+        run: "docker run -v ./:/var/www/html saqijaan/php-82:latest php artisan key:generate --env=testing"
+
+      - name: 'Run unit tests'
+        run: "docker run -v ./:/var/www/html saqijaan/php-82:latest ./vendor/bin/phpunit"
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Checkout code'
+        uses: actions/checkout@v4
+
+      - name: 'Deploy to remote server'
+        uses: appleboy/ssh-action@master
+        with:
+            host: ${{ secrets.ASHI_CLOUD_REMOTE_HOST }}
+            username: ${{ secrets.ASHI_CLOUD_REMOTE_USERNAME }}
+            key: ${{ secrets.ASHI_CLOUD_SERVER_KEY }}
+            script: |
+                cd /var/www/blog.ashicloud.com
+                git pull origin master
+                docker compose -f .docker/docker-compose.yml exec app composer install
+                docker compose -f .docker/docker-compose.yml exec app php artisan migrate --force
+                docker compose -f .docker/docker-compose.yml exec node yarn build
+                docker compose -f .docker/docker-compose.yml exec app php artisan config:cache
+                docker compose -f .docker/docker-compose.yml exec app php artisan view:clear
