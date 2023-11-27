@@ -29,6 +29,6 @@ class SideBar extends Component
 
     public function appName()
     {
-        return 'Tall Admin';
+        return config('app.name');
     }
 }
