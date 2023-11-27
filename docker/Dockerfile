@@ -7,16 +7,17 @@ WORKDIR /var/www/html/
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpng-dev \
+    libicu-dev \
+    libzip-dev \
+    libonig-dev \
     libjpeg62-turbo-dev \
     libfreetype6-dev \
     locales \
-    zip \
     jpegoptim optipng pngquant gifsicle \
     vim \
-    libzip-dev \
+    zip \
     unzip \
     git \
-    libonig-dev \
     curl \
     mariadb-client
 
@@ -36,6 +37,8 @@ RUN docker-php-ext-install pdo_mysql mbstring zip exif
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg
 RUN docker-php-ext-install gd
 RUN docker-php-ext-install pcntl
+RUN docker-php-ext-configure intl && docker-php-ext-install intl
+
 RUN pecl install xdebug && docker-php-ext-enable xdebug
 
 RUN apt-get update && apt-get install supervisor cron -y

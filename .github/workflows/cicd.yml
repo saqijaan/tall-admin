@@ -1,4 +1,4 @@
-name: Deploying blog to production
+name: Deploying to production
 run-name: ${{ github.actor }} triggered the deployment 🚀
 on:
   push:
